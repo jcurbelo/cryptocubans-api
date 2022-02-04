@@ -38,6 +38,7 @@ export const verify = functions.https.onRequest(async (req, res) => {
   corsHandler(req, res, async () => {
     const db = admin.firestore();
     const {address, signature} = req.query;
+    console.log({address, signature});
 
     const data = await db.collection("users")
         .where("address", "==", address)
@@ -52,6 +53,8 @@ export const verify = functions.https.onRequest(async (req, res) => {
 
     const decodedAddress = ethers.utils
         .verifyMessage(user.nonce?.toString() || "", signature as string);
+
+    console.log({decodedAddress});
 
     if (decodedAddress !== address) {
       res.status(400).json({error: "Invalid signature"});
@@ -85,6 +88,8 @@ async function _getTokens(address: string): Promise<number[]> {
         },
       }
   );
+
+  console.log({resp});
 
   const {assets} = resp.data;
 
