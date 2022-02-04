@@ -3,68 +3,74 @@ import * as admin from "firebase-admin";
 import {User} from "./user.interface";
 import {ethers} from "ethers";
 import axios from "axios";
+import * as cors from "cors";
+const corsHandler = cors({origin: true});
 
 admin.initializeApp();
 
 export const auth = functions.https.onRequest(async (req, res) => {
-  const db = admin.firestore();
-  const {address} = req.query;
+  corsHandler(req, res, async () => {
+    const db = admin.firestore();
+    const {address} = req.query;
 
-  const data = await db.collection("users")
-      .where("address", "==", address)
-      .get();
+    const data = await db.collection("users")
+        .where("address", "==", address)
+        .get();
 
-  const user: User = {address: address as string};
+    const user: User = {address: address as string};
 
-  if (data.empty) {
-    user.id = (await db.collection("users").add(user)).id;
-  } else {
-    user.id = data.docs[0].id;
-  }
-  user.nonce = Math.floor(Math.random() * 10000000);
-  await db.collection("users")
-      .doc(user.id as string)
-      .update({nonce: user.nonce});
+    if (data.empty) {
+      user.id = (await db.collection("users").add(user)).id;
+    } else {
+      user.id = data.docs[0].id;
+    }
+    user.nonce = Math.floor(Math.random() * 10000000);
+    await db.collection("users")
+        .doc(user.id as string)
+        .update({nonce: user.nonce});
 
-  res.status(200).json(user);
+    res.status(200).json(user);
+  });
 });
 
 
 export const verify = functions.https.onRequest(async (req, res) => {
-  const db = admin.firestore();
-  const {address, signature} = req.query;
+  corsHandler(req, res, async () => {
+    const db = admin.firestore();
+    const {address, signature} = req.query;
 
-  const data = await db.collection("users")
-      .where("address", "==", address)
-      .get();
+    const data = await db.collection("users")
+        .where("address", "==", address)
+        .get();
 
-  if (data.empty) {
-    res.status(400).json({error: "User not found"});
-    return;
-  }
+    if (data.empty) {
+      res.status(400).json({error: "User not found"});
+      return;
+    }
 
-  const user = data.docs[0].data() as User;
+    const user = data.docs[0].data() as User;
 
-  const decodedAddress = ethers.utils
-      .verifyMessage(user.nonce?.toString() || "", signature as string);
+    const decodedAddress = ethers.utils
+        .verifyMessage(user.nonce?.toString() || "", signature as string);
 
-  if (decodedAddress !== address) {
-    res.status(400).json({error: "Invalid signature"});
-    return;
-  }
+    if (decodedAddress !== address) {
+      res.status(400).json({error: "Invalid signature"});
+      return;
+    }
 
-  const tokenIds = await _getTokens(address);
+    const tokenIds = await _getTokens(address);
 
-  const videosData = await db.collection("videos")
-      .where("tokenId", "in", tokenIds)
-      .get();
+    const videosData = await db.collection("videos")
+        .where("tokenId", "in", tokenIds)
+        .get();
 
-  if (!videosData.empty) {
-    const links = videosData.docs.map((doc) => doc.data()["link"] as string);
-    res.status(200).json(links);
-  }
+    if (!videosData.empty) {
+      const links = videosData.docs.map((doc) => doc.data()["link"] as string);
+      res.status(200).json(links);
+    }
 
-  res.status(200).json([]);
+    res.status(200).json([]);
+  });
 });
 
 // eslint-disable-next-line require-jsdoc
