@@ -13,10 +13,10 @@ export const auth = functions.https.onRequest(async (req, res) => {
       .where("address", "==", address)
       .get();
 
-  let user: User = {address: address as string};
+  const user: User = {address: address as string};
 
   if (data.empty) {
-    user = await db.collection("users").add(user);
+    user.id = (await db.collection("users").add(user)).id;
   } else {
     user.id = data.docs[0].id;
   }
