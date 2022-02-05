@@ -68,6 +68,7 @@ export const verify = functions.https.onRequest(async (req, res) => {
     }
 
     const tokenIds = assets.map((asset: any) => Number(asset["token_id"]));
+    console.log({tokenIds});
 
     const videosData = await db.collection("videos")
         .where("tokenId", "in", tokenIds)
@@ -75,9 +76,11 @@ export const verify = functions.https.onRequest(async (req, res) => {
 
     if (!videosData.empty) {
       const videos = videosData.docs.map((doc: any) => doc.data());
+      console.log({videos});
       videos.forEach((video: any) => {
         const asset = assets
-            .find((asset: any) => asset["token_id"] === video.tokenId);
+            .find((asset: any) =>
+              Number(asset["token_id"]) === Number(video.tokenId));
         if (asset) {
           asset.video = video.link;
         }
