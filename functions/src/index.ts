@@ -61,24 +61,35 @@ export const verify = functions.https.onRequest(async (req, res) => {
       return;
     }
 
-    const tokenIds = await _getTokens(address);
+    const assets = await _getAssets(address);
+
+    if (!assets || !assets.length) {
+      res.status(200).json([]);
+    }
+
+    const tokenIds = assets.map((asset: any) => Number(asset["token_id"]));
 
     const videosData = await db.collection("videos")
         .where("tokenId", "in", tokenIds)
         .get();
 
     if (!videosData.empty) {
-      const links = videosData.docs.map((doc) => doc.data()["link"] as string);
-      res.status(200).json(links);
+      const videos = videosData.docs.map((doc: any) => doc.data());
+      videos.forEach((video: any) => {
+        const asset = assets
+            .find((asset: any) => asset["token_id"] === video.tokenId);
+        if (asset) {
+          asset.video = video.link;
+        }
+      });
     }
 
-    res.status(200).json([]);
+    res.status(200).json(assets);
   });
 });
 
 // eslint-disable-next-line require-jsdoc
-async function _getTokens(address: string): Promise<number[]> {
-  let results: number[] = [];
+async function _getAssets(address: string): Promise<any[]> {
   const contractAddress = "0xca9eE3460D84Eac6C2F2284CFe3E3B35A2267d78";
   const resp = await axios.get(
       `https://api.opensea.io/api/v1/assets?owner=${address}&asset_contract_address=${contractAddress}`,
@@ -93,9 +104,5 @@ async function _getTokens(address: string): Promise<number[]> {
 
   const {assets} = resp.data;
 
-  if (assets && assets.length > 0) {
-    results = assets.map((asset: any) => Number(asset["token_id"]));
-  }
-
-  return results;
+  return assets;
 }
