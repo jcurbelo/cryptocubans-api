@@ -67,22 +67,26 @@ export const verify = functions.https.onRequest(async (req, res) => {
       res.status(200).json([]);
     }
 
-    const tokenIds = assets.map((asset: any) => Number(asset["token_id"]));
-    console.log({tokenIds});
+    const numbers = assets.map((asset: any) => _getNumber(asset["name"]));
+    console.log({numbers: numbers});
 
-    const videosData = await db.collection("videos")
-        .where("tokenId", "in", tokenIds)
+    const assetsSnapshot = await db.collection("assets")
+        .where("number", "in", numbers)
         .get();
 
-    if (!videosData.empty) {
-      const videos = videosData.docs.map((doc: any) => doc.data());
-      console.log({videos});
-      videos.forEach((video: any) => {
+    if (!assetsSnapshot.empty) {
+      const assetsData = assetsSnapshot.docs.map((doc: any) => doc.data());
+      console.log({assetsData: assetsData});
+      assetsData.forEach((d: any) => {
         const asset = assets
-            .find((asset: any) =>
-              Number(asset["token_id"]) === Number(video.tokenId));
+            .find((asset: any) => _getNumber(asset["name"]) === d.number);
         if (asset) {
-          asset.video = video.link;
+          // Fills in the data
+          asset.video = d.video;
+          asset.facebook = d.facebook;
+          asset.instagram = d.instagram;
+          asset.twitter = d.twitter;
+          asset.website = d.website;
         }
       });
     }
@@ -108,4 +112,15 @@ async function _getAssets(address: string): Promise<any[]> {
   const {assets} = resp.data;
 
   return assets;
+}
+
+
+// eslint-disable-next-line require-jsdoc
+function _getNumber(name: string): number {
+  // gets the number from the name
+  const number = Number(name.match(/\d+/));
+  if (isNaN(number)) {
+    throw new Error("Invalid name");
+  }
+  return number;
 }
