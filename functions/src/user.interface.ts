@@ -1,6 +1,6 @@
 export interface User {
     id?: string;
     address?: string;// wallet address
-    nonce?: number;
+    nonce?: string;
     tokenIds?: number[];
 }

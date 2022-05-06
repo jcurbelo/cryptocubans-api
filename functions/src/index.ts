@@ -24,7 +24,16 @@ export const auth = functions.https.onRequest(async (req, res) => {
     } else {
       user.id = data.docs[0].id;
     }
-    user.nonce = Math.floor(Math.random() * 10000000);
+    user.nonce = `
+    Welcome to Cryptocuban Social Club!
+
+    Click to sign in and verify your ownership of the NFT in this collection.
+
+    This request will not trigger a blockchain transaction or cost any gas fees.
+
+    Nonce:
+    ${Math.floor(Math.random() * 10000000)}`;
+
     await db.collection("users")
         .doc(user.id as string)
         .update({nonce: user.nonce});
